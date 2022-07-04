@@ -2,4 +2,4 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/codethissite/public_html/
-    - /bin/ cp -r /home/codethissite/repositories/CodeEditor/* /dist/* $DEPLOYPATH  
+    - /bin/ cp -r /home/codethissite/repositories/CodeEditor/dist/* $DEPLOYPATH  
