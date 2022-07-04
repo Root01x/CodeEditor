@@ -2,4 +2,4 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/codethissite/public_html/
-    - /bin/rsync -AV dist/ $DEPLOYPATH
+    - /bin/rsync -a dist/ $DEPLOYPATH
