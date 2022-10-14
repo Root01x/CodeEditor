@@ -1,6 +1,18 @@
 import './style.css'
 import Split from 'split-grid'
 import { encode, decode } from 'js-base64'
+import * as monaco from 'monaco-editor'
+import HtmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
+import CssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
+import JsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
+
+window.MonacoEnvironment = {
+  getWorker (_, label) {
+    if (label === 'html') return new HtmlWorker()
+    if (label === 'javascript') return new JsWorker()
+    if (label === 'css') return new CssWorker()
+  }
+}
 
 const $ = selector => document.querySelector(selector)
 
@@ -15,34 +27,53 @@ Split({
   }]
 })
 
-const $js = $('#js')
 const $css = $('#css')
+const $js = $('#js')
 const $html = $('#html')
 
-$js.addEventListener('input', update)
-$css.addEventListener('input', update)
-$html.addEventListener('input', update)
+const { pathname } = window.location
+const [rawHtml, rawCss, rawJs] = pathname.slice(1).split('%7C')
 
-function init () {
-  const { pathname } = window.location
-  const [rawHtml, rawCss, rawJs] = pathname.slice(1).split('%7C')
+const html = rawHtml ? decode(rawHtml) : ''
+const css = rawCss ? decode(rawCss) : ''
+const js = rawJs ? decode(rawJs) : ''
 
-  const html = decode(rawHtml)
-  const css = decode(rawCss)
-  const js = decode(rawJs)
-
-  $html.value = html
-  $css.value = css
-  $js.value = js
-
-  const htmlDom = createHtml({ html, css, js })
-  $('iframe').setAttribute('srcdoc', htmlDom)
+const COMMON_EDITOR_OPTIONS = {
+  automaticLayout: true,
+  fontSize: 18,
+  theme: 'vs-dark'
 }
 
+const htmlEditor = monaco.editor.create($html, {
+  value: html,
+  language: 'html',
+  ...COMMON_EDITOR_OPTIONS
+})
+
+const cssEditor = monaco.editor.create($css, {
+  value: css,
+  language: 'css',
+  ...COMMON_EDITOR_OPTIONS
+})
+
+const jsEditor = monaco.editor.create($js, {
+  value: js,
+  language: 'javascript',
+  ...COMMON_EDITOR_OPTIONS
+})
+
+htmlEditor.onDidChangeModelContent(update)
+cssEditor.onDidChangeModelContent(update)
+jsEditor.onDidChangeModelContent(update)
+
+const htmlDom = createHtml({ html, css, js })
+
+$('iframe').setAttribute('srcdoc', htmlDom)
+
 function update () {
-  const html = $html.value
-  const css = $css.value
-  const js = $js.value
+  const html = htmlEditor.getValue()
+  const css = cssEditor.getValue()
+  const js = jsEditor.getValue()
   const hashedCode = `${encode(html)}|${encode(css)}|${encode(js)}`
 
   window.history.replaceState(null, null, `/${hashedCode}`)
@@ -51,7 +82,7 @@ function update () {
   $('iframe').setAttribute('srcdoc', htmlDom)
 }
 
-const createHtml = ({ html, css, js }) => {
+function createHtml ({ html, css, js }) {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -69,4 +100,3 @@ const createHtml = ({ html, css, js }) => {
     </html>
     `
 }
-init()
